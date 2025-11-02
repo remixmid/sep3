@@ -2,3 +2,12 @@
 blazor_ui_*.out
 blazor_ui_*.err
 blazor_ui_*.log
+
+# Exclude Copilot migration artifacts shown in screenshots
+copilot.data.migration.*.xml
+
+# IDE and build artifacts
+**/.idea/
+**/bin/
+**/obj/
+SEP3_T1_BlazerUI/BlazorApp1/publish/
