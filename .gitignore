@@ -1,1 +1,4 @@
-
+# Local run logs
+blazor_ui_*.out
+blazor_ui_*.err
+blazor_ui_*.log
