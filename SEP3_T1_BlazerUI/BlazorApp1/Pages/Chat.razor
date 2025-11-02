@@ -1,0 +1,86 @@
+@page "/chat"
+@implements System.IDisposable
+@inject BlazorApp1.Chat.Services.IChatService ChatService
+@inject Microsoft.Extensions.Options.IOptions<BlazorApp1.Chat.Options.ChatApiOptions> ChatOptions
+
+<h3>Chat (dummy)</h3>
+
+<div class="mb-2">
+    <strong>Thread:</strong> @threadId
+</div>
+
+<div class="border rounded p-2" style="height:300px; overflow:auto; background:#fafafa">
+    @if (messages.Count == 0)
+    {
+        <div class="text-muted">No messages yet.</div>
+    }
+    else
+    {
+        @foreach (var m in messages)
+        {
+            <div>
+                <small class="text-muted">[@m.Timestamp.LocalDateTime.ToString("HH:mm:ss")]</small>
+                <strong>@m.Sender:</strong> @m.Content
+            </div>
+        }
+    }
+</div>
+
+<div class="mt-2 d-flex">
+    <input class="form-control mr-2" placeholder="Type a message..." @bind="newMessage" @bind:event="oninput" />
+    <button class="btn btn-primary ml-2" @onclick="SendAsync">Send</button>
+</div>
+
+@code {
+    private string threadId = "general";
+    private string newMessage = string.Empty;
+    private List<BlazorApp1.Chat.Models.ChatMessage> messages = new();
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cts = new CancellationTokenSource();
+        _ = PollAsync(_cts.Token);
+        await RefreshAsync(_cts.Token);
+    }
+
+    private async Task PollAsync(CancellationToken token)
+    {
+        var interval = Math.Max(1000, ChatOptions.Value.PollIntervalMs);
+        while (!token.IsCancellationRequested)
+        {
+            try
+            {
+                await RefreshAsync(token);
+                await Task.Delay(interval, token);
+            }
+            catch (TaskCanceledException) { }
+            catch (Exception)
+            {
+                // swallow for dummy page; could log
+                await Task.Delay(interval, token);
+            }
+        }
+    }
+
+    private async Task RefreshAsync(CancellationToken token)
+    {
+        var list = await ChatService.GetRecentAsync(threadId, token);
+        messages = list.ToList();
+        StateHasChanged();
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newMessage)) return;
+        await ChatService.SendAsync(threadId, "you", newMessage);
+        newMessage = string.Empty;
+        await RefreshAsync(CancellationToken.None);
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}
