@@ -3,9 +3,6 @@ blazor_ui_*.out
 blazor_ui_*.err
 blazor_ui_*.log
 
-# Exclude Copilot migration artifacts shown in screenshots
-copilot.data.migration.*.xml
-
 # IDE and build artifacts
 **/.idea/
 **/bin/
