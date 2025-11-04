@@ -1,9 +1,7 @@
 @page "/chat"
-@implements System.IDisposable
-@inject BlazorApp1.Chat.Services.IChatService ChatService
-@inject Microsoft.Extensions.Options.IOptions<BlazorApp1.Chat.Options.ChatApiOptions> ChatOptions
+@inject HttpClient Http
 
-<h3>Chat (dummy)</h3>
+<h3>Chat</h3>
 
 <div class="mb-2">
     <strong>Thread:</strong> @threadId
@@ -34,7 +32,7 @@
 @code {
     private string threadId = "general";
     private string newMessage = string.Empty;
-    private List<BlazorApp1.Chat.Models.ChatMessage> messages = new();
+    private List<BlazorApp1.Dto.ChatMessageDto> messages = new();
     private CancellationTokenSource? _cts;
 
     protected override async Task OnInitializedAsync()
@@ -46,7 +44,7 @@
 
     private async Task PollAsync(CancellationToken token)
     {
-        var interval = Math.Max(1000, ChatOptions.Value.PollIntervalMs);
+        const int interval = 3000;
         while (!token.IsCancellationRequested)
         {
             try
@@ -55,25 +53,39 @@
                 await Task.Delay(interval, token);
             }
             catch (TaskCanceledException) { }
-            catch (Exception)
-            {
-                // swallow for dummy page; could log
-                await Task.Delay(interval, token);
-            }
         }
     }
 
     private async Task RefreshAsync(CancellationToken token)
     {
-        var list = await ChatService.GetRecentAsync(threadId, token);
-        messages = list.ToList();
-        StateHasChanged();
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<BlazorApp1.Dto.ChatMessageDto>>(
+                $"api/chat/{threadId}",
+                token
+            );
+            if (result != null)
+            {
+                messages = result;
+                StateHasChanged();
+            }
+        }
+        catch {}
     }
 
     private async Task SendAsync()
     {
         if (string.IsNullOrWhiteSpace(newMessage)) return;
-        await ChatService.SendAsync(threadId, "you", newMessage);
+
+        var msg = new BlazorApp1.Dto.ChatMessageDto
+        {
+            ThreadId = threadId,
+            Sender = "you",
+            Content = newMessage,
+            Timestamp = DateTimeOffset.UtcNow
+        };
+
+        await Http.PostAsJsonAsync("api/chat/send", msg);
         newMessage = string.Empty;
         await RefreshAsync(CancellationToken.None);
     }
