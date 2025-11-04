@@ -87,6 +87,11 @@
 			<version>1.18.34</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.microsoft.signalr</groupId>
+			<artifactId>signalr</artifactId>
+			<version>7.0.5</version>
+		</dependency>
 	</dependencies>
 
 	<build>

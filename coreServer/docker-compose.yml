@@ -10,10 +10,13 @@ services:
       POSTGRES_USER: chat_user
       POSTGRES_PASSWORD: chat_pass
       POSTGRES_DB: chat_db
+    expose:
+      - "5438"
     ports:
-      - "5432:5432"
+      - "5438:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    command: -p 5438
 
   # --- MongoDB ---
   mongodb:
@@ -68,7 +71,6 @@ services:
     ports:
       - "2181:2181"
 
-  # --- Kafka ---
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     container_name: kafka
@@ -77,12 +79,15 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # 👇 ключевой момент — теперь внешние клиенты (Spring) подключаются по localhost
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_DOCKER://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_DOCKER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_DOCKER
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   # --- Kafka UI ---
@@ -96,7 +101,7 @@ services:
       - "8080:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: chat-cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
 volumes:
