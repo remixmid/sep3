@@ -1,0 +1,10 @@
+# Local run logs
+blazor_ui_*.out
+blazor_ui_*.err
+blazor_ui_*.log
+
+# IDE and build artifacts
+**/.idea/
+**/bin/
+**/obj/
+SEP3_T1_BlazerUI/BlazorApp1/publish/
