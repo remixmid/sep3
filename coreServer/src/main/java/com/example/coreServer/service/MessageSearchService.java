@@ -27,7 +27,6 @@ public class MessageSearchService {
             );
             es.index(req);
         } catch (Exception e) {
-            // в проде — логируй/ретраи
         }
     }
 

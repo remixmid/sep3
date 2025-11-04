@@ -46,7 +46,7 @@ services:
     volumes:
       - elastic_data:/usr/share/elasticsearch/data
 
-  # --- Logstash (MongoDB → Elasticsearch) ---
+  # --- Logstash ---
   logstash:
     image: docker.elastic.co/logstash/logstash:8.14.3
     container_name: logstash
@@ -84,7 +84,6 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      # 👇 ключевой момент — теперь внешние клиенты (Spring) подключаются по localhost
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_DOCKER://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_DOCKER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_DOCKER
