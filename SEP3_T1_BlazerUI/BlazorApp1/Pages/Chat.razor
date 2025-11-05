@@ -1,98 +1,44 @@
 @page "/chat"
-@inject HttpClient Http
+@inject BlazorApp1.Service.ChatHubService ChatHub
 
 <h3>Chat</h3>
 
-<div class="mb-2">
-    <strong>Thread:</strong> @threadId
-</div>
-
-<div class="border rounded p-2" style="height:300px; overflow:auto; background:#fafafa">
-    @if (messages.Count == 0)
+<div class="border p-2" style="height:300px; overflow:auto">
+    @foreach (var msg in messages)
     {
-        <div class="text-muted">No messages yet.</div>
-    }
-    else
-    {
-        @foreach (var m in messages)
-        {
-            <div>
-                <small class="text-muted">[@m.Timestamp.LocalDateTime.ToString("HH:mm:ss")]</small>
-                <strong>@m.Sender:</strong> @m.Content
-            </div>
-        }
+        <div>
+            <strong>@msg.sender.Username:</strong> @msg.message.Content
+        </div>
     }
 </div>
 
-<div class="mt-2 d-flex">
-    <input class="form-control mr-2" placeholder="Type a message..." @bind="newMessage" @bind:event="oninput" />
-    <button class="btn btn-primary ml-2" @onclick="SendAsync">Send</button>
-</div>
+<input class="form-control mt-2" placeholder="Message..." @bind="newMessage" />
+<button class="btn btn-primary mt-2" @onclick="SendAsync">Send</button>
 
 @code {
-    private string threadId = "general";
-    private string newMessage = string.Empty;
-    private List<BlazorApp1.Dto.ChatMessageDto> messages = new();
-    private CancellationTokenSource? _cts;
+    private string newMessage = "";
+    private List<(DTOs.ModelDTOs.UserDTO sender, DTOs.ModelDTOs.MessageDTO message, DTOs.ModelDTOs.UserDTO recipient)> messages = new();
 
     protected override async Task OnInitializedAsync()
     {
-        _cts = new CancellationTokenSource();
-        _ = PollAsync(_cts.Token);
-        await RefreshAsync(_cts.Token);
-    }
-
-    private async Task PollAsync(CancellationToken token)
-    {
-        const int interval = 3000;
-        while (!token.IsCancellationRequested)
+        ChatHub.OnMessageReceived += (sender, message, recipient) =>
         {
-            try
-            {
-                await RefreshAsync(token);
-                await Task.Delay(interval, token);
-            }
-            catch (TaskCanceledException) { }
-        }
-    }
+            messages.Add((sender, message, recipient));
+            InvokeAsync(StateHasChanged);
+        };
 
-    private async Task RefreshAsync(CancellationToken token)
-    {
-        try
-        {
-            var result = await Http.GetFromJsonAsync<List<BlazorApp1.Dto.ChatMessageDto>>(
-                $"api/chat/{threadId}",
-                token
-            );
-            if (result != null)
-            {
-                messages = result;
-                StateHasChanged();
-            }
-        }
-        catch {}
+        await ChatHub.StartAsync();
     }
 
     private async Task SendAsync()
     {
         if (string.IsNullOrWhiteSpace(newMessage)) return;
 
-        var msg = new BlazorApp1.Dto.ChatMessageDto
-        {
-            ThreadId = threadId,
-            Sender = "you",
-            Content = newMessage,
-            Timestamp = DateTimeOffset.UtcNow
-        };
+        var sender = new DTOs.ModelDTOs.UserDTO { Username = "you", DisplayName = "You" };
+        var recipient = new DTOs.ModelDTOs.UserDTO { Username = "everyone", DisplayName = "Everyone" };
+        var message = new DTOs.ModelDTOs.MessageDTO { Content = newMessage };
 
-        await Http.PostAsJsonAsync("api/chat/send", msg);
-        newMessage = string.Empty;
-        await RefreshAsync(CancellationToken.None);
-    }
-
-    public void Dispose()
-    {
-        _cts?.Cancel();
-        _cts?.Dispose();
+        await ChatHub.SendMessage(sender, message, recipient);
+        newMessage = "";
     }
 }
