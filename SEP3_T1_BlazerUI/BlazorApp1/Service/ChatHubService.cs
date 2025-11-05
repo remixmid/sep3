@@ -35,7 +35,7 @@ public class ChatHubService
 
         _connection.Reconnecting += (error) =>
         {
-            Console.WriteLine("⚠️ Reconnecting to SignalR hub...");
+            Console.WriteLine("Reconnecting to SignalR hub...");
             return Task.CompletedTask;
         };
 
