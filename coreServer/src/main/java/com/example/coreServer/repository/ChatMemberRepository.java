@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ChatMemberRepository extends JpaRepository<ChatMember, Long> {
-
     List<ChatMember> findByUserId(Long userId);
 
     List<ChatMember> findByChatId(Long chatId);
@@ -15,4 +14,8 @@ public interface ChatMemberRepository extends JpaRepository<ChatMember, Long> {
     Optional<ChatMember> findByChatIdAndUserId(Long chatId, Long userId);
 
     boolean existsByChatIdAndUserId(Long chatId, Long userId);
+
+    long countByChatId(Long chatId);
+
+    void deleteByChatId(Long chatId);
 }

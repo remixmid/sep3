@@ -1,4 +1,4 @@
-package com.example.coreServer.dto;
+package com.example.coreServer.dto.chatMemberDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

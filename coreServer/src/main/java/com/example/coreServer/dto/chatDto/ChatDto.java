@@ -1,4 +1,5 @@
-package com.example.coreServer.dto;
+package com.example.coreServer.dto.chatDto;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,9 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserDto {
+public class ChatDto {
     private Long id;
-    private String username;
-    private String displayName;
-    private String avatarUrl;
+    private String type;
+    private String title;
 }

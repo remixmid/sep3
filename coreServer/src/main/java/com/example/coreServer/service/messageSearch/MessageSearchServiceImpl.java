@@ -1,4 +1,4 @@
-package com.example.coreServer.service;
+package com.example.coreServer.service.messageSearch;
 
 import com.example.coreServer.model.Message;
 import com.example.coreServer.search.MessageSearchDocument;

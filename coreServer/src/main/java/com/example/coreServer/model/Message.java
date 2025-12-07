@@ -20,6 +20,7 @@ public class Message {
     @Id
     private String id;
 
+
     @Indexed
     private Long senderId;
 
@@ -60,6 +61,8 @@ public class Message {
      *Soft delete - text is not deleting just time is marked.
      */
     private Instant deletedAt;
+
+    private List<Long> deletedForUserIds;
 
     /**
      * Additional metadata.

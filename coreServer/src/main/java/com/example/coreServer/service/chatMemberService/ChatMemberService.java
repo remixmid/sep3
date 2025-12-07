@@ -1,4 +1,4 @@
-package com.example.coreServer.service;
+package com.example.coreServer.service.chatMemberService;
 
 import com.example.coreServer.model.ChatMember;
 
@@ -11,4 +11,8 @@ public interface ChatMemberService {
     ChatMember addMember(Long chatId, Long userId);
 
     void removeMember(Long chatId, Long userId);
+
+    void blockUser(Long chatId, Long userId);
+
+    void unblockUser(Long chatId, Long userId);
 }

@@ -1,10 +1,10 @@
 package com.example.coreServer.controller;
 
-import com.example.coreServer.dto.ChatDto;
-import com.example.coreServer.dto.ChatMessageDto;
-import com.example.coreServer.dto.CreateChatRequest;
-import com.example.coreServer.service.ChatService;
-import com.example.coreServer.service.MessageService;
+import com.example.coreServer.dto.chatDto.ChatDto;
+import com.example.coreServer.dto.chatDto.ChatMessageDto;
+import com.example.coreServer.dto.chatDto.CreateChatRequest;
+import com.example.coreServer.service.chatService.ChatService;
+import com.example.coreServer.service.messageService.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,5 +56,24 @@ public class ChatController {
     @PostMapping
     public ChatDto createChat(@RequestBody CreateChatRequest request) {
         return chatService.createChat(request);
+    }
+
+    /**
+     * Delete chat only from one user.
+     * DELETE /api/chats/{chatId}/for-user/{userId}
+     */
+    @DeleteMapping("/{chatId}/for-user/{userId}")
+    public void deleteChatForUser(@PathVariable("chatId") Long chatId,
+                                  @PathVariable("userId") Long userId) {
+        chatService.deleteChatForUser(chatId, userId);
+    }
+
+    /**
+     *Delete chat from both users.
+     * DELETE /api/chats/{chatId}
+     */
+    @DeleteMapping("/{chatId}")
+    public void deleteChatForAll(@PathVariable("chatId") Long chatId) {
+        chatService.deleteChatForAll(chatId);
     }
 }

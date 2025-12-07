@@ -1,7 +1,7 @@
-package com.example.coreServer.signalr;
+package com.example.coreServer.signalR;
 
-import com.example.coreServer.dto.SendMessageRequest;
-import com.example.coreServer.service.MessageService;
+import com.example.coreServer.dto.messageDto.SendMessageRequest;
+import com.example.coreServer.service.messageService.MessageService;
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
 import jakarta.annotation.PostConstruct;

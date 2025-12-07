@@ -1,11 +1,12 @@
-package com.example.coreServer.service;
+package com.example.coreServer.service.chatService;
 
-import com.example.coreServer.dto.ChatDto;
-import com.example.coreServer.dto.CreateChatRequest;
+import com.example.coreServer.dto.chatDto.ChatDto;
+import com.example.coreServer.dto.chatDto.CreateChatRequest;
 import com.example.coreServer.exception.NotFoundException;
 import com.example.coreServer.model.*;
 import com.example.coreServer.repository.ChatMemberRepository;
 import com.example.coreServer.repository.ChatRepository;
+import com.example.coreServer.repository.MessageRepository;
 import com.example.coreServer.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatRepository chatRepository;
     private final ChatMemberRepository chatMemberRepository;
     private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
 
     @Override
     public List<ChatDto> getChatsForUser(Long userId) {
@@ -179,6 +181,28 @@ public class ChatServiceImpl implements ChatService {
         }
 
         return savedChat;
+    }
+
+    @Override
+    public void deleteChatForUser(Long chatId, Long userId) {
+        var membership = chatMemberRepository.findByChatIdAndUserId(chatId, userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Chat membership not found for chatId=" + chatId + ", userId=" + userId));
+
+        chatMemberRepository.delete(membership);
+
+        long membersLeft = chatMemberRepository.countByChatId(chatId);
+        if (membersLeft == 0) {
+            chatRepository.deleteById(chatId);
+            messageRepository.deleteByConversationId(chatId);
+        }
+    }
+
+    @Override
+    public void deleteChatForAll(Long chatId) {
+        chatMemberRepository.deleteByChatId(chatId);
+        chatRepository.deleteById(chatId);
+        messageRepository.deleteByConversationId(chatId);
     }
 
     private ChatDto toDto(Chat chat) {

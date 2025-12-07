@@ -1,4 +1,4 @@
-package com.example.coreServer.dto;
+package com.example.coreServer.dto.userDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,10 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserRegistrationRequest {
+public class UserDto {
+    private Long id;
     private String username;
-    private String password;
     private String displayName;
-    private String phone;
     private String avatarUrl;
 }

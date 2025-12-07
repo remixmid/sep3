@@ -1,8 +1,8 @@
 package com.example.coreServer.controller;
 
-import com.example.coreServer.dto.UserDto;
-import com.example.coreServer.dto.UserRegistrationRequest;
-import com.example.coreServer.service.UserService;
+import com.example.coreServer.dto.userDto.UserDto;
+import com.example.coreServer.dto.userDto.UserRegistrationRequest;
+import com.example.coreServer.service.userService.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,5 +1,6 @@
-package com.example.coreServer.service;
+package com.example.coreServer.service.chatMemberService;
 
+import com.example.coreServer.dto.chatMemberDto.ChatMemberDto;
 import com.example.coreServer.exception.NotFoundException;
 import com.example.coreServer.model.ChatMember;
 import com.example.coreServer.model.ChatRole;
@@ -38,5 +39,36 @@ public class ChatMemberServiceImpl implements ChatMemberService {
         ChatMember member = chatMemberRepository.findByChatIdAndUserId(chatId, userId)
                 .orElseThrow(() -> new NotFoundException("Chat member not found"));
         chatMemberRepository.delete(member);
+    }
+
+    @Override
+    public void blockUser(Long chatId, Long userId) {
+        ChatMember member = chatMemberRepository.findByChatIdAndUserId(chatId, userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Chat member not found for chatId=" + chatId + ", userId=" + userId));
+
+        member.setBlocked(true);
+        chatMemberRepository.save(member);
+    }
+
+    @Override
+    public void unblockUser(Long chatId, Long userId) {
+        ChatMember member = chatMemberRepository.findByChatIdAndUserId(chatId, userId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Chat member not found for chatId=" + chatId + ", userId=" + userId));
+
+        member.setBlocked(false);
+        chatMemberRepository.save(member);
+    }
+
+    private ChatMemberDto toDto(ChatMember m) {
+        return ChatMemberDto.builder()
+                .userId(m.getUserId())
+                .role(m.getRole().name())
+                .muted(m.isMuted())
+                .blocked(m.isBlocked())
+                .lastReadMessageId(m.getLastReadMessageId())
+                .lastReadAt(m.getLastReadAt())
+                .build();
     }
 }

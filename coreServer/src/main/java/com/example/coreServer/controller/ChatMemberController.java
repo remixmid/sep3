@@ -1,8 +1,8 @@
 package com.example.coreServer.controller;
 
-import com.example.coreServer.dto.ChatMemberDto;
+import com.example.coreServer.dto.chatMemberDto.ChatMemberDto;
 import com.example.coreServer.model.ChatMember;
-import com.example.coreServer.service.ChatMemberService;
+import com.example.coreServer.service.chatMemberService.ChatMemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,5 +61,25 @@ public class ChatMemberController {
                 .lastReadMessageId(member.getLastReadMessageId())
                 .lastReadAt(member.getLastReadAt())
                 .build();
+    }
+
+    /**
+     * Block member in chat.
+     * POST /api/chats/{chatId}/members/{userId}/block
+     */
+    @PostMapping("/{userId}/block")
+    public void blockUser(@PathVariable("chatId") Long chatId,
+                          @PathVariable("userId") Long userId) {
+        chatMemberService.blockUser(chatId, userId);
+    }
+
+    /**
+     * Unblock member in chat.
+     * POST /api/chats/{chatId}/members/{userId}/unblock
+     */
+    @PostMapping("/{userId}/unblock")
+    public void unblockUser(@PathVariable("chatId") Long chatId,
+                            @PathVariable("userId") Long userId) {
+        chatMemberService.unblockUser(chatId, userId);
     }
 }

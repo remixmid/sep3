@@ -1,7 +1,7 @@
-package com.example.coreServer.service;
+package com.example.coreServer.service.userService;
 
-import com.example.coreServer.dto.UserDto;
-import com.example.coreServer.dto.UserRegistrationRequest;
+import com.example.coreServer.dto.userDto.UserDto;
+import com.example.coreServer.dto.userDto.UserRegistrationRequest;
 import com.example.coreServer.exception.NotFoundException;
 import com.example.coreServer.model.User;
 import com.example.coreServer.repository.UserRepository;
