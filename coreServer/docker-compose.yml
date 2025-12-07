@@ -10,13 +10,10 @@ services:
       POSTGRES_USER: chat_user
       POSTGRES_PASSWORD: chat_pass
       POSTGRES_DB: chat_db
-    expose:
-      - "5438"
     ports:
-      - "5438:5432"
+      - "5438:5432"          # снаружи 5438, внутри стандартный 5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    command: -p 5438
 
   # --- MongoDB ---
   mongodb:
@@ -42,66 +39,8 @@ services:
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
     ports:
       - "9200:9200"
-      - "9300:9300"
     volumes:
       - elastic_data:/usr/share/elasticsearch/data
-
-  # --- Logstash ---
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.14.3
-    container_name: logstash
-    depends_on:
-      - mongodb
-      - elasticsearch
-    ports:
-      - "5044:5044"
-    volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
-    environment:
-      - LS_JAVA_OPTS=-Xmx512m -Xms512m
-
-  # --- Zookeeper ---
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    container_name: zookeeper
-    restart: always
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    container_name: kafka
-    restart: always
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-      - "29092:29092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_DOCKER://kafka:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_DOCKER:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_DOCKER
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
-  # --- Kafka UI ---
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    restart: always
-    depends_on:
-      - kafka
-    ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: chat-cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
 volumes:
   postgres_data:
