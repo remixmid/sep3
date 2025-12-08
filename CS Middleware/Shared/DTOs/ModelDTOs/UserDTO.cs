@@ -5,7 +5,8 @@ namespace DTOs.ModelDTOs;
 
 public class UserDTO {
 
-    public int ID { get; set; }
+    public long ID { get; set; }
     public required String Username;
     public required String DisplayName;
+    public String AvatarUrl { get; set; } = String.Empty;
 }

@@ -19,7 +19,7 @@ public class SignalRCoreClient {
 
     // HUB URL:
     // signalr.core-hub-url=http://localhost:5000/coreHub?role=core
-    @Value("${signalr.core-hub-url:http://localhost:5000/coreHub?role=core}")
+    @Value("${signalr.core-hub-url:http://localhost:5294/coreHub?role=core}")
     private String hubUrl;
 
     public SignalRCoreClient(MessageService messageService) {

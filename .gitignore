@@ -8,3 +8,5 @@ blazor_ui_*.log
 **/bin/
 **/obj/
 SEP3_T1_BlazerUI/BlazorApp1/publish/
+
+coreServer/target/
