@@ -11,11 +11,13 @@ public class UserClient {
     }
 
     public async ValueTask<UserDTO> GetUserById(int id) {
-        return await httpClient.GetFromJsonAsync<UserDTO>($"{id}");
+            return await httpClient.GetFromJsonAsync<UserDTO>($"{id}")
+                ?? throw new HttpRequestException();
     }
 
     public async ValueTask<UserDTO> GetUserByUsername(String username) {
-        return await httpClient.GetFromJsonAsync<UserDTO>($"by-username?username={username}");
+        return await httpClient.GetFromJsonAsync<UserDTO>($"by-username?username={username}")
+            ?? throw new HttpRequestException();
     }
 
     public async Task Register() {

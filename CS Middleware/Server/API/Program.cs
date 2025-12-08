@@ -1,5 +1,6 @@
 using API.CoreConnection;
 using API.Hubs;
+using Model;
 
 
 
@@ -11,7 +12,7 @@ builder.Services.AddEndpointsApiExplorer();
 // Swagger gen???
 
 
-String baseAddress = "https://localhost:8081/api/";
+String baseAddress = "http://localhost:8081/api/";
 
 builder.Services.AddHttpClient<ChatClient>(x => {
     x.BaseAddress = new Uri(baseAddress);
@@ -23,8 +24,8 @@ builder.Services.AddHttpClient<MessageClient>(x => {
     x.BaseAddress = new Uri(baseAddress);
 });
 builder.Services.AddHttpClient<UserClient>(x => {
-    x.BaseAddress = new Uri(baseAddress);
-});;
+    x.BaseAddress = new Uri(baseAddress + "users/");
+});
 
 
 var app = builder.Build();
@@ -52,8 +53,6 @@ userGroup.MapGet("{id}", async (int id, UserClient userClient) => {
 
 var chatGroup = app.MapGroup("chats");
 var messageGroup = app.MapGroup("messages");
-
-
 
 
 app.Run();
