@@ -1,11 +1,19 @@
 using System;
-using DTOs.ModelDTOs;
+using DTOs.ChatDTOs;
+using DTOs.UserDTOs;
 using Microsoft.AspNetCore.SignalR;
 using Model;
 
 namespace API.Hubs;
 
 public class MessagesHub : Hub<IClientHandler> {
+
+    /* Thoughts on Hubs.
+     * Hubs are the main way to send information back to connected clients.
+     * Meaning it is also the main entrypoint for clients to send information to
+     * the actual Proxy Server itself.
+     * Thus 
+     */
 
     /*
      * TODO: THIS IS NOT FINISHED. 

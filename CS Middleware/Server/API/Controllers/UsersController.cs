@@ -1,4 +1,5 @@
 using API.CoreConnection;
+using DTOs.UserDTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,16 +16,21 @@ namespace API.Controllers
         }
 
         [HttpGet("{id:int}")]
-        public async Task GetUser(int id) {
+        public async Task<ActionResult<UserDTO>> GetUser(int id) {
             Console.WriteLine($"Getting user with ID: {id}");
-            await userClient.GetUserById(id);
+            return await userClient.GetUserById(id);
         }
 
-        [HttpPost]
-        public async Task AddUser() {
-            
+        [HttpGet("search")]
+        public async Task<ActionResult<UserDTO>> GetUserByName([FromQuery] String username) {
+            Console.WriteLine($"Getting user with name: {username}");
+            return await userClient.GetUserByUsername(username);
         }
-        
 
+        [HttpPost("register")]
+        public async Task<ActionResult<UserDTO>> AddUser(RegisterUserRequest req) {
+            UserDTO res = await userClient.Register(req);
+            return Created($"/user/{res.Id}", res);
+        }
     }
 }

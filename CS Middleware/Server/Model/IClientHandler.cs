@@ -1,5 +1,6 @@
 using System;
-using DTOs.ModelDTOs;
+using DTOs.ChatDTOs;
+using DTOs.UserDTOs;
 
 
 namespace Model;

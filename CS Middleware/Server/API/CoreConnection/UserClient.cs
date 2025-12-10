@@ -1,5 +1,5 @@
 using System;
-using DTOs.ModelDTOs;
+using DTOs.UserDTOs;
 
 namespace API.CoreConnection;
 
@@ -10,18 +10,30 @@ public class UserClient {
         httpClient = client;
     }
 
-    public async ValueTask<UserDTO> GetUserById(int id) {
-            return await httpClient.GetFromJsonAsync<UserDTO>($"{id}")
-                ?? throw new HttpRequestException();
+    /*
+     * Corresponds to GET /api/users/{id}
+     */
+    public async ValueTask<UserDTO> GetUserById(long id) {
+        return await httpClient.GetFromJsonAsync<UserDTO>($"{id}")
+            ?? throw new HttpRequestException();
     }
 
+    /*
+     * Corresponds to GET /api/users/by-username?username={username}
+     */
     public async ValueTask<UserDTO> GetUserByUsername(String username) {
         return await httpClient.GetFromJsonAsync<UserDTO>($"by-username?username={username}")
             ?? throw new HttpRequestException();
     }
 
-    public async Task Register() {
-        throw new NotImplementedException();
+    /*
+     * Corresponds to POST /api/users/register
+     */
+    public async ValueTask<UserDTO> Register(RegisterUserRequest req) {
+        var res = await httpClient.PostAsJsonAsync<RegisterUserRequest>("register", req);
+        res.EnsureSuccessStatusCode();
+        return await res.Content.ReadFromJsonAsync<UserDTO>()
+            ?? throw new HttpRequestException();
     }
 
 }
