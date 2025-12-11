@@ -1,7 +1,8 @@
 using API.CoreConnection;
 using API.Hubs;
-using DTOs.MessageActionDTOs;
+using DTOs.UserActionRequests;
 using DTOs.UserDTOs;
+using Microsoft.AspNetCore.Mvc;
 using Model;
 
 
@@ -44,34 +45,7 @@ app.UseHttpsRedirection();
 app.MapHub<MessagesHub>("/hubs/messages");
 app.MapHub<CoreHub>("/coreHub");
 
-var userGroup = app.MapGroup("users");
-userGroup.MapGet("{id}", async (long id, UserClient userClient) => {
-    var user = await userClient.GetUserById(id);
-    return Results.Ok(user);
-});
 
-userGroup.MapGet("by-username", async (String username, UserClient userClient) => {
-    var user = await userClient.GetUserByUsername(username);
-    return Results.Ok(user);
-});
-
-userGroup.MapPost("register", async (RegisterUserRequest req, UserClient userClient) => {
-    var user = await userClient.Register(req);
-    return Results.Ok(user);
-});
-
-var chatGroup = app.MapGroup("chats");
-var messageGroup = app.MapGroup("messages");
-
-messageGroup.MapPost(String.Empty, async (SendMessageRequest req, MessageClient messageClient) => {
-    var message = await messageClient.SendMessage(req);
-    return Results.Ok(message);
-});
-
-messageGroup.MapPatch("{id}", async (String id, EditMessageRequest req, MessageClient messageClient) => {
-   var message = await messageClient.EditMessage(id, req);
-   return Results.Ok(message);
-});
 
 
 app.Run();

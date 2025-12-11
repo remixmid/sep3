@@ -1,7 +1,7 @@
 using System;
 using DTOs.ChatDTOs;
 
-namespace DTOs.MessageActionDTOs;
+namespace DTOs.UserActionRequests;
 
 public class SendMessageRequest {
     public required long ChatId { get; set; }

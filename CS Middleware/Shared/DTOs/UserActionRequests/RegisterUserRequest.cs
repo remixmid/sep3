@@ -1,6 +1,6 @@
 using System;
 
-namespace DTOs.UserDTOs;
+namespace DTOs.UserActionRequests;
 
 public class RegisterUserRequest {
     public required String Username { get; set; }

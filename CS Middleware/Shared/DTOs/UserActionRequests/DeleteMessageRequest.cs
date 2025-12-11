@@ -1,6 +1,6 @@
 using System;
 
-namespace DTOs.MessageActionDTOs;
+namespace DTOs.UserActionRequests;
 
 public class DeleteMessageRequest {
     public long UserId { get; set; }

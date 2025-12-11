@@ -1,6 +1,6 @@
 using System;
 
-namespace DTOs.MessageActionDTOs;
+namespace DTOs.UserActionRequests;
 
 public class EditMessageRequest {
     public long EditorId { get; set; }

@@ -3,7 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DTOs.ChatDTOs;
-using DTOs.MessageActionDTOs;
+using DTOs.UserActionRequests;
+using Microsoft.AspNetCore.Mvc;
 
 namespace API.CoreConnection;
 
@@ -18,7 +19,7 @@ public class MessageClient {
      * Corresponds to POST /api/messages
      */
     public async ValueTask<MessageDTO> SendMessage(SendMessageRequest req) {
-        var res = await httpClient.PostAsJsonAsync(String.Empty, req);
+        var res = await httpClient.PostAsJsonAsync("", req);
         res.EnsureSuccessStatusCode();
         return await res.Content.ReadFromJsonAsync<MessageDTO>()
             ?? throw new HttpRequestException();
@@ -39,7 +40,8 @@ public class MessageClient {
      */
     public async Task DeleteMessage(String id, DeleteMessageRequest req) {
         // TODO: I think this is correct? Although I am honestly not sure.
-        await httpClient.DeleteFromJsonAsync<Task>($"{id}?userId={req.UserId}&forAll={req.ForAll}");
+        var res = await httpClient.DeleteAsync($"{id}?userId={req.UserId}&forAll={req.ForAll}");
+        res.EnsureSuccessStatusCode();
     }
 
     /*
@@ -47,12 +49,10 @@ public class MessageClient {
      */
     public async Task DeleteManyMessages(DeleteMessageRequest req) {
         // TODO: I cannot add a body to DeleteFromJsonAsync, so this was the best alternative I could find.
-        // Still needs testing.
-        var request = new HttpRequestMessage {
-            Method = HttpMethod.Delete,
-            RequestUri = new Uri(String.Empty),
-            Content = new StringContent(JsonSerializer.Serialize(req), Encoding.UTF8, "application/json")
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "") {
+        Content = JsonContent.Create(req)
         };
-        await httpClient.SendAsync(request);
+        var res = await httpClient.SendAsync(request);
+        res.EnsureSuccessStatusCode();
     }
 }

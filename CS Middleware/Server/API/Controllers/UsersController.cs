@@ -1,4 +1,5 @@
 using API.CoreConnection;
+using DTOs.UserActionRequests;
 using DTOs.UserDTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

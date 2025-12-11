@@ -1,6 +1,6 @@
 using API.Hubs;
 using DTOs.ChatDTOs;
-using DTOs.MessageActionDTOs;
+using DTOs.UserActionRequests;
 using DTOs.UserDTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +32,7 @@ namespace API.Controllers
         }
 
         [HttpPost]
-        public Task<MessageDTO> SendMessage([FromBody] SendMessageRequest req) {
+        public Task<MessageDTO> SendMessage(SendMessageRequest req) {
             throw new NotImplementedException();
         }
 

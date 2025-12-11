@@ -3,10 +3,11 @@ using System;
 namespace DTOs.ChatDTOs;
 
 public class MessageDTO {
-    public String Id { get; set; } = String.Empty;
-    public String ChatId { get; set; } = String.Empty;
-    public String SenderId { get; set; } = String.Empty;
-    public String ReceiverId { get; set; } = String.Empty;
+    public required String Id { get; set; }
+    public required long ChatId { get; set; }
+    public required long SenderId { get; set; }
+    // Should receiver be required?
+    public long ReceiverId { get; set; }
     public String Text { get; set; } = String.Empty;
     public String ReplyToMessageId { get; set; } = String.Empty;
     public DateTime CreatedAt { get; set; }
