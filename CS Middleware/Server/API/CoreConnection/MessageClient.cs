@@ -19,7 +19,7 @@ public class MessageClient {
      * Corresponds to POST /api/messages
      */
     public async ValueTask<MessageDTO> SendMessage(SendMessageRequest req) {
-        var res = await httpClient.PostAsJsonAsync("", req);
+        var res = await httpClient.PostAsJsonAsync("/", req);
         res.EnsureSuccessStatusCode();
         return await res.Content.ReadFromJsonAsync<MessageDTO>()
             ?? throw new HttpRequestException();
@@ -29,7 +29,7 @@ public class MessageClient {
      * Corresponds to PATCH /api/messages/{messageId}
      */
     public async ValueTask<MessageDTO> EditMessage(String id, EditMessageRequest req) {
-        var res = await httpClient.PatchAsJsonAsync($"{id}", req);
+        var res = await httpClient.PatchAsJsonAsync($"/{id}", req);
         res.EnsureSuccessStatusCode();
         return await res.Content.ReadFromJsonAsync<MessageDTO>()
             ?? throw new HttpRequestException();
@@ -40,7 +40,7 @@ public class MessageClient {
      */
     public async Task DeleteMessage(String id, DeleteMessageRequest req) {
         // TODO: I think this is correct? Although I am honestly not sure.
-        var res = await httpClient.DeleteAsync($"{id}?userId={req.UserId}&forAll={req.ForAll}");
+        var res = await httpClient.DeleteAsync($"/{id}?userId={req.UserId}&forAll={req.ForAll}");
         res.EnsureSuccessStatusCode();
     }
 
@@ -49,7 +49,7 @@ public class MessageClient {
      */
     public async Task DeleteManyMessages(DeleteMessageRequest req) {
         // TODO: I cannot add a body to DeleteFromJsonAsync, so this was the best alternative I could find.
-        using var request = new HttpRequestMessage(HttpMethod.Delete, "") {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "/") {
         Content = JsonContent.Create(req)
         };
         var res = await httpClient.SendAsync(request);

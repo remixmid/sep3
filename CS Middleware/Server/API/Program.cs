@@ -17,11 +17,11 @@ builder.Services.AddEndpointsApiExplorer();
 
 String baseAddress = "http://localhost:8081/api/";
 
+// This needs to be adjusted likely. I believe it is the correct path though.
 builder.Services.AddHttpClient<ChatClient>(x => {
-    x.BaseAddress = new Uri(baseAddress + "chats/");
+    x.BaseAddress = new Uri(baseAddress);
 });
 
-// This needs to be adjusted likely
 builder.Services.AddHttpClient<ChatMemberClient>(x => {
     x.BaseAddress = new Uri(baseAddress + "chats/");
 });
@@ -42,7 +42,7 @@ if (!app.Environment.IsDevelopment()) {
 
 app.MapControllers();
 app.UseHttpsRedirection();
-app.MapHub<MessagesHub>("/hubs/messages");
+app.MapHub<UserHub>("/hubs/messages");
 app.MapHub<CoreHub>("/coreHub");
 
 

@@ -12,9 +12,9 @@ namespace API.Controllers
     [Route("api/[controller]")]
     [ApiController]
     public class MessagesController : ControllerBase {
-        private readonly IHubContext<MessagesHub, IClientHandler> hub;
+        private readonly IHubContext<UserHub, IClientHandler> hub;
 
-        public MessagesController(IHubContext<MessagesHub, IClientHandler> MessagesHub) {
+        public MessagesController(IHubContext<UserHub, IClientHandler> MessagesHub) {
             hub = MessagesHub;
         }
 
