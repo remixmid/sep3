@@ -21,16 +21,18 @@ public class UserHub : Hub<IClientHandler> {
     //    => await Clients.All.ReceiveMessage(sender, message, recipient);
     
 
-    private readonly IClientProviderService clientService;
+    private readonly IClientProviderService clientServices;
+
     public UserHub(IClientProviderService services) {
-        clientService = services;
+        clientServices = services;
     }
 
     public override async Task OnConnectedAsync() {
-        //var userId = Context.UserIdentifier;
+        String userId = Context.User?.FindFirst("user_id")?.Value 
+            ?? throw new HubException();
 
         // This doesn ot work currently. I need to associate a user identifier from SignalR with the userID on login.
-        List<ChatDTO> chats = await clientService.GetChatsForUser(69);
+        List<ChatDTO> chats = await clientServices.GetChatsForUser(long.Parse(userId));
         foreach (ChatDTO c in chats)
             await Groups.AddToGroupAsync(Context.ConnectionId, c.Id.ToString());
 
