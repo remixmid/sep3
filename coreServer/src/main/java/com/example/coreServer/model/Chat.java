@@ -30,7 +30,7 @@ public class Chat {
     private String title;
 
     /**
-     * Id of user who created a chat.
+     * ID of user who created a chat.
      */
     private Long ownerId;
 
