@@ -1,0 +1,11 @@
+﻿@page "/app/profile"
+@layout BlazorApp1.Shared.AppShellLayout
+@inject BlazorApp1.Service.AuthSession Session
+
+<h4>Profile</h4>
+
+<div class="profile-card">
+    <div><strong>UserId:</strong> @Session.UserId</div>
+    <div><strong>Username:</strong> @Session.Username</div>
+    <div><strong>DisplayName:</strong> @Session.DisplayName</div>
+</div>

@@ -1,0 +1,82 @@
+﻿@page "/login"
+
+@using DTOs.UserActionRequests
+@inject BlazorApp1.Service.Api.IAuthApi AuthApi
+@inject BlazorApp1.Service.AuthSession Session
+@inject NavigationManager Nav
+
+<h3>Login</h3>
+
+<EditForm Model="_model" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Username</label>
+        <InputText class="form-control" @bind-Value="_model.Username" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <InputText class="form-control" @bind-Value="_model.Password" type="password" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    <button class="btn btn-primary w-100" type="submit" disabled="@_loading">
+        @(_loading ? "Logging in..." : "Log in")
+    </button>
+
+    <div class="mt-3 text-center">
+        <a href="/register">Create account</a>
+    </div>
+</EditForm>
+
+@code {
+    private LoginModel _model = new();
+    private string? _error;
+    private bool _loading;
+
+    private async Task Submit()
+    {
+        if (_loading) return; // prevent double submit
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var req = new LoginRequest
+            {
+                Username = (_model.Username ?? "").Trim(),
+                Password = _model.Password ?? ""
+            };
+
+            var result = await AuthApi.LoginAsync(req);
+
+            Session.SetAuthenticated(result.User, result.AccessToken);
+
+            Nav.NavigateTo("/app");
+
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    public sealed class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string? Username { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string? Password { get; set; }
+    }
+}

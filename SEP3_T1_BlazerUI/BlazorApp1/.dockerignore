@@ -1,0 +1,25 @@
+bin/
+obj/
+**/bin/
+**/obj/
+
+# User-specific / tooling
+.vs/
+.vscode/
+.git/
+.gitignore
+*.user
+*.suo
+*.swp
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker context noise
+Dockerfile
+.dockerignore
+

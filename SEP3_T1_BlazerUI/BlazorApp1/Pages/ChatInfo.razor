@@ -1,0 +1,445 @@
+﻿@page "/app/chat/{ChatId:long}/info"
+@layout BlazorApp1.Shared.AppShellLayout
+
+@using System.Reflection
+@using DTOs.ChatDTOs
+@using DTOs.UserDTOs
+@inject BlazorApp1.Service.Api.IChatApi ChatApi
+@inject BlazorApp1.Service.Api.IUserApi UserApi
+@inject BlazorApp1.Service.AuthSession Session
+@inject BlazorApp1.Service.ChatStore ChatStore
+@inject NavigationManager Nav
+
+<h4 class="mb-3">Chat info</h4>
+
+@if (_loading)
+{
+    <div class="text-muted">Loading…</div>
+}
+else if (_chat is null)
+{
+    <div class="text-muted">Chat not found.</div>
+}
+else
+{
+    <div class="mb-3">
+        <div><b>Title:</b> @_title</div>
+        <div><b>Type:</b> @_type</div>
+    </div>
+
+    <h5>Members (@_members.Count)</h5>
+
+    <div class="mb-3">
+        @foreach (var m in _members)
+        {
+            var uid = ReadLong(m, "UserId", "Id", "MemberId");
+            var dn  = ReadString(m, "DisplayName", "displayName", "Name") ?? $"User {uid}";
+            var un  = ReadString(m, "Username", "username") ?? "";
+
+            <div class="d-flex align-items-center justify-content-between border rounded p-2 mb-1">
+                <div>
+                    <div class="fw-bold">@dn</div>
+                    @if (!string.IsNullOrWhiteSpace(un))
+                    {
+                        <div class="small text-muted">@("@"+un)</div>
+                    }
+                </div>
+
+                @if (_isGroup && _isLeader && uid != Session.UserId)
+                {
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger"
+                            disabled="@_busy"
+                            @onclick:stopPropagation="true"
+                            @onclick="() => RemoveMemberAsync(uid)">
+                        Remove
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    @if (_isGroup && _isLeader)
+    {
+        <h5 class="mt-4">Add member</h5>
+
+        <input class="form-control"
+               placeholder="Search username..."
+               value="@_addQuery"
+               @oninput="OnAddSearchInput" />
+
+        @if (_addSearching)
+        {
+            <div class="small text-muted mt-1">Searching…</div>
+        }
+
+        @if (_addResults.Count > 0)
+        {
+            <div class="mt-2">
+                @foreach (var u in _addResults)
+                {
+                    var uid = ReadLong(u, "Id", "UserId");
+
+                    <button type="button"
+                            class="btn btn-light w-100 text-start mb-1"
+                            disabled="@(uid == 0)"
+                            @onclick="() => AddMemberAsync(uid)">
+                        <div class="fw-bold">@u.DisplayName</div>
+                        <div class="small text-muted">@("@"+u.Username)</div>
+                    </button>
+                }
+            </div>
+        }
+    }
+
+    <div class="mt-4 d-flex gap-2">
+        @if (_isDirect)
+        {
+            <button type="button"
+                    class="btn btn-outline-warning"
+                    disabled="@_busy"
+                    @onclick="DeleteForMeAsync">
+                Delete chat for me
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-danger"
+                    disabled="@_busy"
+                    @onclick="DeleteForAllAsync">
+                Delete chat for both
+            </button>
+        }
+        else if (_isGroup)
+        {
+            @if (_isLeader)
+            {
+                <button type="button"
+                        class="btn btn-outline-danger"
+                        disabled="@_busy"
+                        @onclick="DeleteForAllAsync">
+                    Delete chat for everyone
+                </button>
+            }
+            else
+            {
+                <button type="button"
+                        class="btn btn-outline-warning"
+                        disabled="@_busy"
+                        @onclick="LeaveAsync">
+                    Leave chat
+                </button>
+            }
+        }
+
+        <button type="button"
+                class="btn btn-outline-primary"
+                @onclick="BackToChat">
+            Back to chat
+        </button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_status))
+    {
+        <div class="text-muted mt-2">@_status</div>
+    }
+}
+
+@code {
+    [Parameter] public long ChatId { get; set; }
+
+    private bool _loading = true;
+    private bool _busy;
+    private string? _status;
+
+    private ChatDTO? _chat;
+    private string _title = "";
+    private string _type = "";
+    private bool _isGroup;
+    private bool _isDirect;
+
+    private readonly List<UserInChatDTO> _members = new();
+
+    // add-member search
+    private string _addQuery = "";
+    private bool _addSearching;
+    private readonly List<UserDTO> _addResults = new();
+    private CancellationTokenSource? _addCts;
+
+    // role
+    private bool _isLeader;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _status = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var chat = ChatStore.Chats.FirstOrDefault(x => x.Id == ChatId);
+            _chat = chat;
+
+            _type = (_chat?.Type?.ToString() ?? "").ToUpperInvariant();
+            _isGroup = _type == "GROUP";
+            _isDirect = _type == "DIRECT";
+
+            _title = string.IsNullOrWhiteSpace(_chat?.Title) ? $"Chat #{ChatId}" : _chat!.Title;
+
+            _members.Clear();
+            _members.AddRange(await ChatApi.GetMembersAsync(ChatId));
+
+            _isLeader = DetectLeaderFromMembers();
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private bool DetectLeaderFromMembers()
+    {
+        var me = _members.FirstOrDefault(m => ReadLong(m, "UserId", "Id", "MemberId") == Session.UserId);
+        if (me is null) return false;
+
+        if (ReadBool(me, "IsLeader", "Leader", "IsOwner", "Owner", "IsAdmin", "Admin"))
+            return true;
+
+        var role = ReadString(me, "Role", "MemberRole", "ChatRole");
+        if (string.IsNullOrWhiteSpace(role)) return false;
+
+        return role.Equals("LEADER", StringComparison.OrdinalIgnoreCase)
+               || role.Equals("OWNER", StringComparison.OrdinalIgnoreCase)
+               || role.Equals("ADMIN", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task RemoveMemberAsync(long userId)
+    {
+        if (_busy) return;
+        _busy = true;
+        _status = null;
+
+        try
+        {
+            await ChatApi.RemoveMemberAsync(ChatId, userId);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task AddMemberAsync(long userId)
+    {
+        if (_busy) return;
+        _busy = true;
+        _status = null;
+
+        try
+        {
+            await ChatApi.AddMemberAsync(ChatId, userId);
+            _addQuery = "";
+            _addResults.Clear();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LeaveAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _status = null;
+
+        try
+        {
+            await ChatApi.DeleteChatForUserAsync(ChatId, Session.UserId);
+            await ChatStore.RefreshAsync();
+            Nav.NavigateTo("/app");
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DeleteForMeAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _status = null;
+
+        try
+        {
+            await ChatApi.DeleteChatForUserAsync(ChatId, Session.UserId);
+            await ChatStore.RefreshAsync();
+            Nav.NavigateTo("/app");
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DeleteForAllAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _status = null;
+
+        try
+        {
+            await ChatApi.DeleteChatForAllAsync(ChatId);
+            await ChatStore.RefreshAsync();
+            Nav.NavigateTo("/app");
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void BackToChat() => Nav.NavigateTo($"/app/chat/{ChatId}");
+
+    private Task OnAddSearchInput(ChangeEventArgs e)
+    {
+        _addQuery = e.Value?.ToString() ?? "";
+        return DebouncedAddSearchAsync();
+    }
+
+    private async Task DebouncedAddSearchAsync()
+    {
+        _addCts?.Cancel();
+        _addCts?.Dispose();
+        _addCts = new CancellationTokenSource();
+        var ct = _addCts.Token;
+
+        _addResults.Clear();
+
+        if (_addQuery.Length < 2)
+        {
+            _addSearching = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _addSearching = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Task.Delay(250, ct);
+
+            var found = await UserApi.SearchByUsernameAsync(_addQuery, ct);
+
+            _addResults.Clear();
+            _addResults.AddRange(found.Where(u => ReadLong(u, "Id", "UserId") != Session.UserId));
+        }
+        catch (OperationCanceledException) { }
+        catch (System.Net.Http.HttpRequestException)
+        {
+            // IMPORTANT: скрываем 500/404/и любые http-ошибки поиска (если юзера нет - просто пусто)
+            _addResults.Clear();
+        }
+        catch
+        {
+            // IMPORTANT: скрываем любые другие ошибки поиска, чтобы UI не засорялся
+            _addResults.Clear();
+        }
+        finally
+        {
+            _addSearching = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static long ReadLong(object obj, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var p = obj.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+            if (p is null) continue;
+
+            var v = p.GetValue(obj);
+            if (v is null) continue;
+
+            if (v is long l) return l;
+            if (v is int i) return i;
+            if (long.TryParse(v.ToString(), out var parsed)) return parsed;
+        }
+        return 0;
+    }
+
+    private static string? ReadString(object obj, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var p = obj.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+            if (p is null) continue;
+
+            var v = p.GetValue(obj)?.ToString();
+            if (!string.IsNullOrWhiteSpace(v)) return v;
+        }
+        return null;
+    }
+
+    private static bool ReadBool(object obj, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            var p = obj.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+            if (p is null) continue;
+
+            var v = p.GetValue(obj);
+            if (v is null) continue;
+
+            if (v is bool b) return b;
+            if (bool.TryParse(v.ToString(), out var parsed)) return parsed;
+        }
+        return false;
+    }
+}

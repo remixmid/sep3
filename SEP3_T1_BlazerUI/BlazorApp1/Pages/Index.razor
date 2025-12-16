@@ -1,0 +1,13 @@
+﻿@page "/"
+@inject BlazorApp1.Service.AuthSession Session
+@inject NavigationManager Nav
+
+<p>Redirecting…</p>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (Session.IsAuthenticated) Nav.NavigateTo("/app", true);
+        else Nav.NavigateTo("/login", true);
+    }
+}
