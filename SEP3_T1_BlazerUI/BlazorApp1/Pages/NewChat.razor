@@ -1,0 +1,150 @@
+﻿@page "/app/new-chat"
+@layout BlazorApp1.Shared.AppShellLayout
+
+@using DTOs.UserDTOs
+@inject BlazorApp1.Service.Api.IChatApi ChatApi
+@inject BlazorApp1.Service.AuthSession Session
+@inject BlazorApp1.Service.ChatStore ChatStore
+@inject NavigationManager Nav
+
+<h4>New chat</h4>
+
+@if (_toUsername is not null)
+{
+    <div class="mb-3">
+        <div class="text-muted small">Selected user</div>
+        <div><strong>@_toDisplay</strong> (@("@"+_toUsername))</div>
+    </div>
+}
+
+<div class="mb-3">
+    <label class="form-label">Chat title</label>
+    <input class="form-control"
+           placeholder="Group Name"
+           value="@_title"
+           @oninput="OnTitleInput" />
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Member IDs (comma separated)</label>
+    <input class="form-control"
+           placeholder="e.g. 12, 15, 18"
+           value="@_memberIdsRaw"
+           @oninput="OnMemberIdsInput" />
+</div>
+
+<button class="btn btn-primary"
+        @onclick="Create"
+        disabled="@(_loading || string.IsNullOrWhiteSpace(_memberIdsRaw))">
+    @(_loading ? "Creating..." : "Create")
+</button>
+
+@if (!string.IsNullOrWhiteSpace(_status))
+{
+    <div class="text-muted mt-3">@_status</div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "toUserId")]
+    public long? ToUserId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "toUsername")]
+    public string? ToUsername { get; set; }
+
+    [SupplyParameterFromQuery(Name = "toDisplay")]
+    public string? ToDisplay { get; set; }
+
+    private string _title = "";
+    private string _memberIdsRaw = "";
+    private string? _status;
+    private bool _loading;
+
+    private string? _toUsername => ToUsername;
+    private string _toDisplay => string.IsNullOrWhiteSpace(ToDisplay) ? "User" : ToDisplay;
+
+    protected override void OnParametersSet()
+    {
+        _status = null;
+
+        if (ToUserId is > 0)
+        {
+            _memberIdsRaw = ToUserId.Value.ToString();
+
+            if (string.IsNullOrWhiteSpace(_title) && !string.IsNullOrWhiteSpace(ToDisplay))
+                _title = ToDisplay!;
+        }
+    }
+
+    private void OnTitleInput(ChangeEventArgs e)
+        => _title = e.Value?.ToString() ?? "";
+
+    private void OnMemberIdsInput(ChangeEventArgs e)
+        => _memberIdsRaw = e.Value?.ToString() ?? "";
+
+    private async Task Create()
+    {
+        if (_loading) return;
+        _loading = true;
+        _status = null;
+
+        try
+        {
+            var otherIds = ParseIds(_memberIdsRaw).ToList();
+
+            if (ToUserId is > 0 && !otherIds.Contains(ToUserId.Value))
+                otherIds.Add(ToUserId.Value);
+
+            otherIds = otherIds
+                .Where(x => x > 0 && x != Session.UserId)
+                .Distinct()
+                .ToList();
+
+            if (otherIds.Count == 0)
+            {
+                _status = "Pick at least one other member.";
+                return;
+            }
+
+            var type = otherIds.Count == 1 ? ChatType.DIRECT : ChatType.GROUP;
+
+            if (type == ChatType.DIRECT && otherIds.Count != 1)
+            {
+                _status = "DIRECT chat must have exactly one other member.";
+                return;
+            }
+
+            var req = new CreateChatRequest
+            {
+                Type = type,
+                Title = string.IsNullOrWhiteSpace(_title) ? null : _title.Trim(),
+                OwnerId = Session.UserId,
+                MemberIds = otherIds
+            };
+
+            var chatId = await ChatApi.CreateChatAsync(req);
+
+            await ChatStore.RefreshAsync();
+            Nav.NavigateTo($"/app/chat/{chatId}");
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static IEnumerable<long> ParseIds(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            yield break;
+
+        foreach (var part in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (long.TryParse(part, out var id))
+                yield return id;
+        }
+    }
+}

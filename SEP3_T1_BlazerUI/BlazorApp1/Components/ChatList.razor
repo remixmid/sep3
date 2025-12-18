@@ -1,0 +1,44 @@
+﻿@using DTOs.ChatDTOs
+@inject BlazorApp1.Service.Api.IChatApi ChatApi
+@inject BlazorApp1.Service.AuthSession Session
+
+<div class="chatlist">
+    @if (_loading)
+    {
+        <div class="text-muted p-3">Loading chats…</div>
+    }
+    else if (_chats.Count == 0)
+    {
+        <div class="text-muted p-3">
+            No chats yet.
+            <div class="small">Connect IChatApi.GetChatsAsync(...) to .NET proxy to load real chats.</div>
+        </div>
+    }
+    else
+    {
+        @foreach (var c in _chats)
+        {
+            <a class="chatlist-item" href="@($"/app/chat/{c.Id}")">
+                <div class="chat-title">@c.Title</div>
+                <div class="chat-sub">@c.Type</div>
+            </a>
+        }
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private List<ChatDTO> _chats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _chats = (await ChatApi.GetChatsAsync(Session.UserId)).ToList();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

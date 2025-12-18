@@ -1,0 +1,234 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@implements IAsyncDisposable
+
+@using DTOs.UserDTOs
+@using DTOs.ChatDTOs
+@inject BlazorApp1.Service.ChatHubService ChatHub
+@inject NavigationManager Nav
+@inject BlazorApp1.Service.AuthSession Session
+@inject BlazorApp1.Service.ChatStore ChatStore
+@inject BlazorApp1.Service.Api.IAuthApi AuthApi
+@inject BlazorApp1.Service.Api.IUserApi UserApi
+
+<div class="app-shell">
+    <aside class="sidebar">
+        <div class="mt-3">
+            <div class="small text-muted">Logged in as</div>
+
+            <button type="button"
+                    class="btn btn-link p-0 text-start"
+                    @onclick="OpenMyProfile">
+                <div class="fw-bold">
+                    @(!string.IsNullOrWhiteSpace(Session.DisplayName)
+                        ? Session.DisplayName
+                        : (Session.Username ?? ""))
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Session.Username))
+                {
+                    <div class="small text-muted">@("@" + Session.Username)</div>
+                }
+            </button>
+        </div>
+
+        <input class="form-control mt-3"
+               placeholder="Search username..."
+               @bind="_query"
+               @bind:event="oninput"
+               @bind:after="OnQueryChanged" />
+
+        @if (_isSearching)
+        {
+            <div class="small text-muted mt-1">Searching…</div>
+        }
+
+        @if (_results.Count > 0)
+        {
+            <div class="mt-2">
+                @foreach (var u in _results)
+                {
+                    <button class="btn btn-light w-100 text-start mb-1"
+                            @onclick="() => OpenUserInfo(u)">
+                        <div class="fw-bold">@u.DisplayName</div>
+                        <div class="small text-muted">@("@"+u.Username)</div>
+                    </button>
+                }
+            </div>
+        }
+
+        <div class="mt-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted small">Chats</div>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="ReloadChats">↻</button>
+            </div>
+
+            @if (_chatsLoading)
+            {
+                <div class="text-muted small mt-2">Loading…</div>
+            }
+            else
+            {
+                <div class="mt-2">
+                    @foreach (var c in ChatStore.Chats)
+                    {
+                        <a class="btn btn-outline-light w-100 text-start mb-1"
+                           href="@($"/app/chat/{c.Id}")">
+                            <div class="fw-bold">@c.Title</div>
+                            <div class="small text-muted">@c.Type</div>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+
+        <button class="btn btn-outline-danger w-100 mt-4" @onclick="LogoutAsync">
+            Logout
+        </button>
+    </aside>
+
+    <main class="main">
+        @Body
+    </main>
+</div>
+
+@code {
+    private string _query = "";
+    private bool _isSearching;
+    private readonly List<UserDTO> _results = new();
+    private CancellationTokenSource? _searchCts;
+
+    private bool _chatsLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Session.Changed += OnSessionChanged;
+        ChatStore.Changed += OnChatStoreChanged;
+
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await LoadChatsAsync();
+        await ChatHub.StartAsync();
+
+    }
+
+    private void OnSessionChanged()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            ChatStore.Clear();
+            _ = ChatHub.StopAsync();
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            _ = ChatHub.StartAsync();
+            _ = LoadChatsAsync();
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnQueryChanged()
+    {
+        _ = DebouncedSearchAsync();
+    }
+
+    private void OnChatStoreChanged()
+        => InvokeAsync(StateHasChanged);
+
+    private async Task LoadChatsAsync()
+    {
+        _chatsLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await ChatStore.RefreshAsync();
+        }
+        finally
+        {
+            _chatsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private Task ReloadChats() => LoadChatsAsync();
+
+    private async Task LogoutAsync()
+    {
+        try { await AuthApi.LogoutAsync(); }
+        finally { Session.Logout(); }
+    }
+
+    private async Task DebouncedSearchAsync()
+    {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = new CancellationTokenSource();
+        var ct = _searchCts.Token;
+
+        _results.Clear();
+
+        if (_query.Length < 2)
+        {
+            _isSearching = false;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _isSearching = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Task.Delay(300, ct);
+
+            var found = await UserApi.SearchByUsernameAsync(_query, ct);
+
+            _results.Clear();
+            _results.AddRange(found);
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            _isSearching = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OpenUserInfo(UserDTO u)
+    {
+        Nav.NavigateTo($"/app/user/{u.Id}");
+    }
+
+    private void OpenMyProfile()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        Nav.NavigateTo("/app/profile");
+    }
+
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+        ChatStore.Changed -= OnChatStoreChanged;
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+    }
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        await ChatHub.StopAsync();
+    }
+
+}

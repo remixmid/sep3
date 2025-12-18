@@ -1,0 +1,86 @@
+@page "/chat"
+@using DTOs.ChatDTOs
+@using DTOs.UserDTOs
+@inject BlazorApp1.Service.ChatHubService ChatHub
+@inject BlazorApp1.Service.AuthSession Session
+
+<h3>Chat (demo)</h3>
+
+<div class="border p-2" style="height:300px; overflow:auto">
+    @foreach (var item in _messages)
+    {
+        <div>
+            <strong>@DisplayName(item.Sender):</strong> @item.Message.Text
+            <span class="text-muted" style="margin-left:8px;font-size:12px">
+                @item.Message.SentAt.ToString("HH:mm")
+            </span>
+        </div>
+    }
+</div>
+
+<input class="form-control mt-2" placeholder="Message..." @bind="_newMessage" />
+<button class="btn btn-primary mt-2"
+        @onclick="SendAsync"
+        disabled="@string.IsNullOrWhiteSpace(_newMessage)">
+    Send
+</button>
+
+@code {
+    private readonly List<ChatItem> _messages = new();
+    private string _newMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        ChatHub.OnMessageReceived += (sender, message, recipient) =>
+        {
+            _messages.Add(new ChatItem(sender, message, recipient));
+            InvokeAsync(StateHasChanged);
+        };
+
+
+        await Task.CompletedTask;
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newMessage)) return;
+
+        var sender = new UserDTO
+        {
+            Id = Session.UserId, 
+            Username = Session.Username ?? "unknown",
+            DisplayName = string.IsNullOrWhiteSpace(Session.DisplayName)
+                ? (Session.Username ?? "unknown")
+                : Session.DisplayName
+        };
+
+        var recipient = new UserDTO
+        {
+            Id = 0,
+            Username = "everyone",
+            DisplayName = "Everyone"
+        };
+
+        var message = new MessageDTO
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            ChatId = 0,
+            SenderId = sender.Id,
+            ReceiverId = recipient.Id,
+            Text = _newMessage.Trim(),
+            ReplyToMessageId = "",
+            SentAt = DateTime.UtcNow,
+            EditedAt = null
+        };
+
+        _messages.Add(new ChatItem(sender, message, recipient));
+        _newMessage = "";
+
+        await Task.CompletedTask;
+    }
+
+    private static string DisplayName(UserDTO u)
+        => string.IsNullOrWhiteSpace(u.DisplayName) ? u.Username : u.DisplayName;
+
+    private sealed record ChatItem(UserDTO Sender, MessageDTO Message, UserDTO Recipient);
+}

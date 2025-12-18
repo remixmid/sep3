@@ -1,0 +1,165 @@
+﻿@page "/app/user/{UserId:long}"
+@layout BlazorApp1.Shared.AppShellLayout
+
+@using DTOs.UserDTOs
+@using DTOs.UserActionRequests
+
+@inject BlazorApp1.Service.Api.IUserApi UserApi
+@inject BlazorApp1.Service.Api.IChatApi ChatApi
+@inject BlazorApp1.Service.AuthSession Session
+@inject BlazorApp1.Service.ChatStore ChatStore
+@inject NavigationManager Nav
+
+<h4>User info</h4>
+
+@if (_loading)
+{
+    <div class="text-muted mt-3">Loading…</div>
+}
+else if (_user == null)
+{
+    <div class="text-danger mt-3">User not found.</div>
+}
+else
+{
+    <div class="card mt-3 profile-surface">
+        <div class="card-body">
+            <div class="fw-bold fs-5">@(_user.DisplayName)</div>
+            <div class="text-muted">@("@"+_user.Username)</div>
+
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary"
+                        @onclick="CreateDirectAsync"
+                        disabled="@_busy">
+                    @(_busy ? "Working..." : "Create direct")
+                </button>
+
+                <button class="btn btn-outline-danger"
+                        @onclick="BlockAsync"
+                        disabled="@_busy">
+                    Block
+                </button>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_status))
+            {
+                <div class="text-muted mt-2">@_status</div>
+            }
+        </div>
+    </div>
+}
+<style>
+  .profile-surface {
+      background: rgba(18, 23, 33, 0.96) !important;
+      color: rgba(235, 240, 250, 0.95) !important;
+      border: 1px solid rgba(255,255,255,.08) !important;
+      border-radius: 16px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  }
+
+  .profile-surface .text-muted {
+      color: rgba(235, 240, 250, 0.65) !important;
+  }
+
+  .profile-surface .form-control {
+      background: rgba(255,255,255,.06) !important;
+      color: rgba(235, 240, 250, 0.95) !important;
+      border: 1px solid rgba(255,255,255,.10) !important;
+  }
+</style>
+
+
+@code {
+    [Parameter] public long UserId { get; set; }
+
+    private bool _loading = true;
+    private bool _busy;
+    private string? _status;
+    private UserDTO? _user;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Session.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        _loading = true;
+        _status = null;
+
+        try
+        {
+            _user = await UserApi.GetByIdAsync(UserId);
+
+            if (_user?.Id == Session.UserId)
+                _status = "This is you.";
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+            _user = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CreateDirectAsync()
+    {
+        if (_user == null) return;
+        if (_busy) return;
+        if (_user.Id == Session.UserId) return;
+
+        _busy = true;
+        _status = null;
+
+        try
+        {
+            var req = new CreateChatRequest
+            {
+                Type = ChatType.DIRECT,
+                Title = string.IsNullOrWhiteSpace(_user.DisplayName) ? _user.Username : _user.DisplayName,
+                OwnerId = Session.UserId,
+                MemberIds = new List<long> { _user.Id }
+            };
+
+            var chatId = await ChatApi.CreateChatAsync(req);
+
+            await ChatStore.RefreshAsync();
+            Nav.NavigateTo($"/app/chat/{chatId}");
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task BlockAsync()
+    {
+        if (_user == null) return;
+        if (_busy) return;
+
+        _busy = true;
+        _status = null;
+
+        try
+        {
+            _status = "Block is not implemented on API yet.";
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _status = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
